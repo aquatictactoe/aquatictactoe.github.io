@@ -158,4 +158,27 @@ function startNewGame() {
       winner: null
     });
   });
+
+  function loadLeaderboard() {
+  const playersRef = db.ref("/players");
+  playersRef.on("value", snapshot => {
+    const players = snapshot.val();
+    const tableBody = document.querySelector("#leaderboard tbody");
+    tableBody.innerHTML = "";
+
+    const sorted = Object.entries(players || {}).sort(([, a], [, b]) => b.wins - a.wins);
+
+    sorted.forEach(([name, stats]) => {
+      const row = document.createElement("tr");
+      row.innerHTML = `
+        <td>${name}</td>
+        <td>${stats.wins || 0}</td>
+        <td>${stats.losses || 0}</td>
+        <td>${stats.draws || 0}</td>
+      `;
+      tableBody.appendChild(row);
+    });
+  });
+}
+
 }
