@@ -1,46 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <title>Multiplayer Tic Tac Toe</title>
-  <link rel="stylesheet" href="style.css" />
-  
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+  <title>Tic Tac Toe Leaderboard</title>
+  <style>
+    #leaderboard { margin-bottom: 20px; }
+    #game-board { display: none; }
+    .cell { width: 60px; height: 60px; display: inline-block; border: 1px solid #000; font-size: 36px; text-align: center; line-height: 60px; cursor: pointer; }
+  </style>
 </head>
 <body>
-  <h1>Multiplayer Tic Tac Toe</h1>
+  <h1>Tic Tac Toe</h1>
+  <div id="leaderboard">
+    <h2>Top 5 Scores</h2>
+    <ul id="scoreList"></ul>
+  </div>
+  <button onclick="startGame()">Start Game</button>
+  <button onclick="endGame()">End Game</button>
 
-  <!-- Login/Join -->
-  <div id="login">
-    <input type="text" id="playerName" placeholder="Enter your name" />
-    <button onclick="joinGame()">Join Game</button>
+  <div id="game-board">
+    <h3 id="status">Player X's Turn</h3>
+    <div id="board"></div>
   </div>
 
-  <!-- Game UI -->
-  <div id="gameArea" style="display:none;">
-    <p id="playerInfo"></p>
-    <div class="board" id="board"></div>
-    <p id="gameStatus"></p>
-    <button onclick="startNewGame()">Start New Game</button>
-  </div>
-
-  <!-- Leaderboard -->
-  <h2>Leaderboard</h2>
-  <table id="leaderboard" border="1" style="margin:auto; border-collapse:collapse;">
-    <thead>
-      <tr>
-        <th>Player</th>
-        <th>Wins</th>
-        <th>Losses</th>
-        <th>Draws</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-
-  <!-- App logic -->
-  <script src="app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <script src="game.js"></script>
 </body>
 </html>
