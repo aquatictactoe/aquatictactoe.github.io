@@ -1,182 +1,99 @@
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyDL_gFAjzDYn7UT4OMO8RBQtEE1cXgAWRM",
   authDomain: "tictactoe-81cd5.firebaseapp.com",
+  databaseURL: "https://tictactoe-81cd5-default-rtdb.firebaseio.com",
   projectId: "tictactoe-81cd5",
-   databaseURL: "https://tictactoe-81cd5-default-rtdb.firebaseio.com",
   storageBucket: "tictactoe-81cd5.firebasestorage.app",
   messagingSenderId: "31391867375",
   appId: "1:31391867375:web:886a9ee074d1900ea5161a",
+  measurementId: "G-D9Y070WG70"
 };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let player = null;
-let playerSymbol = null;
-const gameId = "tictactoe-multiplayer";
+let board = Array(9).fill("");
+let currentPlayer = "X";
+let isGameActive = false;
 
-async function joinGame() {
-  player = document.getElementById("playerName").value.trim();
-  if (!player) return alert("Enter your name");
+const winCombos = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
 
-  await ensurePlayerStats(player);
-
-  const gameRef = db.ref(`/games/${gameId}`);
-  gameRef.once('value', snapshot => {
-    const game = snapshot.val();
-    if (!game || !game.playerX) {
-      gameRef.set({
-        board: Array(9).fill(null),
-        turn: "X",
-        playerX: player,
-        playerO: null,
-        status: "playing",
-        winner: null
-      });
-      playerSymbol = "X";
-    } else if (!game.playerO && game.playerX !== player) {
-      gameRef.update({ playerO: player });
-      playerSymbol = "O";
-    } else {
-      return alert("Game full or name taken");
-    }
-
-    document.getElementById("login").style.display = "none";
-    document.getElementById("gameArea").style.display = "block";
-    document.getElementById("playerInfo").textContent = `You are ${player} (${playerSymbol})`;
-
-    subscribeToGame();
-    loadLeaderboard();
-  });
+function startGame() {
+  isGameActive = true;
+  board = Array(9).fill("");
+  currentPlayer = "X";
+  document.getElementById("game-board").style.display = "block";
+  document.getElementById("status").innerText = "Player X's Turn";
+  drawBoard();
 }
 
-function subscribeToGame() {
-  const gameRef = db.ref(`/games/${gameId}`);
-  gameRef.on('value', snapshot => {
-    const data = snapshot.val();
-    if (!data) return;
-    renderBoard(data);
-    updateGameStatus(data);
-  });
+function endGame() {
+  isGameActive = false;
+  document.getElementById("game-board").style.display = "none";
 }
 
-function renderBoard(data) {
+function drawBoard() {
   const boardEl = document.getElementById("board");
   boardEl.innerHTML = "";
-  data.board.forEach((cell, i) => {
+  board.forEach((cell, idx) => {
     const div = document.createElement("div");
     div.className = "cell";
-    div.textContent = cell || "";
-    if (!cell && data.turn === playerSymbol && data.status === "playing") {
-      div.addEventListener("click", () => makeMove(i, data));
-    }
+    div.innerText = cell;
+    div.onclick = () => makeMove(idx);
     boardEl.appendChild(div);
   });
 }
 
-function updateGameStatus(data) {
-  const statusEl = document.getElementById("gameStatus");
-  if (data.status === "ended") {
-    statusEl.textContent = data.winner
-      ? `Game Over! Winner: ${data.winner}`
-      : `Game Over! It's a Draw.`;
+function makeMove(idx) {
+  if (!isGameActive || board[idx] !== "") return;
+  board[idx] = currentPlayer;
+  drawBoard();
+  if (checkWin(currentPlayer)) {
+    document.getElementById("status").innerText = `Player ${currentPlayer} Wins!`;
+    saveScore(currentPlayer);
+    isGameActive = false;
+  } else if (!board.includes("")) {
+    document.getElementById("status").innerText = "Draw!";
+    isGameActive = false;
   } else {
-    statusEl.textContent = `Turn: ${data.turn}`;
+    currentPlayer = currentPlayer === "X" ? "O" : "X";
+    document.getElementById("status").innerText = `Player ${currentPlayer}'s Turn`;
   }
 }
 
-function makeMove(index, data) {
-  if (data.board[index] || data.status !== "playing") return;
+function checkWin(player) {
+  return winCombos.some(combo => combo.every(i => board[i] === player));
+}
 
-  const newBoard = [...data.board];
-  newBoard[index] = playerSymbol;
+function saveScore(winner) {
+  const newScore = {
+    player: winner,
+    timestamp: Date.now()
+  };
+  db.ref('scores').push(newScore);
+  loadScores();
+}
 
-  const gameRef = db.ref(`/games/${gameId}`);
-  const winner = getWinner(newBoard);
-  const draw = !newBoard.includes(null);
-
-  if (winner) {
-    gameRef.update({
-      board: newBoard,
-      status: "ended",
-      winner: player
+function loadScores() {
+  db.ref('scores')
+    .orderByChild('timestamp')
+    .limitToLast(5)
+    .once('value', (snapshot) => {
+      const scoreList = document.getElementById("scoreList");
+      scoreList.innerHTML = "";
+      const scores = [];
+      snapshot.forEach(child => scores.push(child.val()));
+      scores.reverse().forEach(score => {
+        const li = document.createElement("li");
+        const date = new Date(score.timestamp).toLocaleString();
+        li.innerText = `Player ${score.player} - ${date}`;
+        scoreList.appendChild(li);
+      });
     });
-    updatePlayerStats(player, "win");
-    const opponent = playerSymbol === "X" ? data.playerO : data.playerX;
-    if (opponent) updatePlayerStats(opponent, "loss");
-  } else if (draw) {
-    gameRef.update({
-      board: newBoard,
-      status: "ended",
-      winner: null
-    });
-    updatePlayerStats(data.playerX, "draw");
-    updatePlayerStats(data.playerO, "draw");
-  } else {
-    gameRef.update({
-      board: newBoard,
-      turn: playerSymbol === "X" ? "O" : "X"
-    });
-  }
 }
 
-function getWinner(board) {
-  const combos = [
-    [0,1,2],[3,4,5],[6,7,8],
-    [0,3,6],[1,4,7],[2,5,8],
-    [0,4,8],[2,4,6]
-  ];
-  return combos.find(([a,b,c]) =>
-    board[a] && board[a] === board[b] && board[a] === board[c]
-  );
-}
-
-function ensurePlayerStats(name) {
-  const ref = db.ref(`/players/${name}`);
-  ref.once('value', snapshot => {
-    if (!snapshot.exists()) {
-      ref.set({ wins: 0, losses: 0, draws: 0 });
-    }
-  });
-}
-
-function updatePlayerStats(name, result) {
-  const stat = result === "win" ? "wins" : result === "loss" ? "losses" : "draws";
-  const ref = db.ref(`/players/${name}/${stat}`);
-  ref.transaction(current => (current || 0) + 1);
-}
-
-function startNewGame() {
-  const gameRef = db.ref(`/games/${gameId}`);
-  gameRef.once('value', snapshot => {
-    const data = snapshot.val();
-    if (data.status !== "ended") return alert("Game is still ongoing.");
-    gameRef.update({
-      board: Array(9).fill(null),
-      turn: "X",
-      status: "playing",
-      winner: null
-    });
-  });
-}
-
-function loadLeaderboard() {
-  const playersRef = db.ref("/players");
-  playersRef.on("value", snapshot => {
-    const players = snapshot.val();
-    const tableBody = document.querySelector("#leaderboard tbody");
-    tableBody.innerHTML = "";
-
-    const sorted = Object.entries(players || {}).sort(([, a], [, b]) => b.wins - a.wins);
-
-    sorted.forEach(([name, stats]) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${name}</td>
-        <td>${stats.wins || 0}</td>
-        <td>${stats.losses || 0}</td>
-        <td>${stats.draws || 0}</td>
-      `;
-      tableBody.appendChild(row);
-    });
-  });
-}
+window.onload = loadScores;
