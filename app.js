@@ -2,6 +2,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyDL_gFAjzDYn7UT4OMO8RBQtEE1cXgAWRM",
   authDomain: "tictactoe-81cd5.firebaseapp.com",
   projectId: "tictactoe-81cd5",
+   databaseURL: "https://tictactoe-81cd5-default-rtdb.firebaseio.com",
   storageBucket: "tictactoe-81cd5.firebasestorage.app",
   messagingSenderId: "31391867375",
   appId: "1:31391867375:web:886a9ee074d1900ea5161a",
