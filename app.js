@@ -1,59 +1,57 @@
-// Firebase config
 const firebaseConfig = {
-apiKey: "AIzaSyDL_gFAjzDYn7UT4OMO8RBQtEE1cXgAWRM",
+  apiKey: "AIzaSyDL_gFAjzDYn7UT4OMO8RBQtEE1cXgAWRM",
   authDomain: "tictactoe-81cd5.firebaseapp.com",
   projectId: "tictactoe-81cd5",
-  databaseURL: "https://tictactoe-81cd5-default-rtdb.firebaseio.com",
   storageBucket: "tictactoe-81cd5.firebasestorage.app",
   messagingSenderId: "31391867375",
-  appId: "1:31391867375:web:886a9ee074d1900ea5161a"
+  appId: "1:31391867375:web:886a9ee074d1900ea5161a",
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const db = firebase.firestore();
 
 let player = null;
 let playerSymbol = null;
-const gameId = "tictactoe-multiplayer";
+let unsubscribe = null;
+const gameId = "multiplayer-tictactoe";
 
 async function joinGame() {
   player = document.getElementById("playerName").value.trim();
-  if (!player) return alert("Enter your name");
+  if (!player) return alert("Enter a name");
 
-  await ensurePlayerStats(player);
+  await ensurePlayerStats(player); // make sure player has stats
 
-  const gameRef = db.ref(`/games/${gameId}`);
-  gameRef.once('value', snapshot => {
-    const game = snapshot.val();
-    if (!game || !game.playerX) {
-      gameRef.set({
-        board: Array(9).fill(null),
-        turn: "X",
-        playerX: player,
-        playerO: null,
-        status: "playing",
-        winner: null
-      });
-      playerSymbol = "X";
-    } else if (!game.playerO && game.playerX !== player) {
-      gameRef.update({ playerO: player });
-      playerSymbol = "O";
-    } else {
-      return alert("Game full or name taken");
-    }
+  const gameRef = db.collection("games").doc(gameId);
+  const gameDoc = await gameRef.get();
+  let data = gameDoc.exists ? gameDoc.data() : null;
 
-    document.getElementById("login").style.display = "none";
-    document.getElementById("gameArea").style.display = "block";
-    document.getElementById("playerInfo").textContent = `You are ${player} (${playerSymbol})`;
+  if (!gameDoc.exists || !data.playerX) {
+    await gameRef.set({
+      board: Array(9).fill(null),
+      turn: "X",
+      playerX: player,
+      playerO: null,
+      status: "playing", // playing | ended
+      winner: null
+    });
+    playerSymbol = "X";
+  } else if (!data.playerO && data.playerX !== player) {
+    await gameRef.update({ playerO: player });
+    playerSymbol = "O";
+  } else {
+    return alert("Game full or name taken");
+  }
 
-    subscribeToGame();
-  });
+  document.getElementById("login").style.display = "none";
+  document.getElementById("gameArea").style.display = "block";
+  document.getElementById("playerInfo").textContent = `You are ${player} (${playerSymbol})`;
+
+  subscribeToGame();
 }
 
 function subscribeToGame() {
-  const gameRef = db.ref(`/games/${gameId}`);
-  gameRef.on('value', snapshot => {
-    const data = snapshot.val();
-    if (!data) return;
+  const gameRef = db.collection("games").doc(gameId);
+  unsubscribe = gameRef.onSnapshot(doc => {
+    const data = doc.data();
     renderBoard(data);
     updateGameStatus(data);
   });
@@ -84,35 +82,36 @@ function updateGameStatus(data) {
   }
 }
 
-function makeMove(index, data) {
+async function makeMove(index, data) {
   if (data.board[index] || data.status !== "playing") return;
 
   const newBoard = [...data.board];
   newBoard[index] = playerSymbol;
 
-  const gameRef = db.ref(`/games/${gameId}`);
   const winner = getWinner(newBoard);
-  const draw = !newBoard.includes(null);
+  const isDraw = !newBoard.includes(null);
+
+  const gameRef = db.collection("games").doc(gameId);
 
   if (winner) {
-    gameRef.update({
+    await gameRef.update({
       board: newBoard,
       status: "ended",
       winner: player
     });
-    updatePlayerStats(player, "win");
+    await updatePlayerStats(player, "win");
     const opponent = playerSymbol === "X" ? data.playerO : data.playerX;
-    if (opponent) updatePlayerStats(opponent, "loss");
-  } else if (draw) {
-    gameRef.update({
+    if (opponent) await updatePlayerStats(opponent, "loss");
+  } else if (isDraw) {
+    await gameRef.update({
       board: newBoard,
       status: "ended",
       winner: null
     });
-    updatePlayerStats(data.playerX, "draw");
-    updatePlayerStats(data.playerO, "draw");
+    await updatePlayerStats(data.playerX, "draw");
+    await updatePlayerStats(data.playerO, "draw");
   } else {
-    gameRef.update({
+    await gameRef.update({
       board: newBoard,
       turn: playerSymbol === "X" ? "O" : "X"
     });
@@ -130,56 +129,17 @@ function getWinner(board) {
   );
 }
 
-// 🔢 Player score management
-function ensurePlayerStats(name) {
-  const ref = db.ref(`/players/${name}`);
-  ref.once('value', snapshot => {
-    if (!snapshot.exists()) {
-      ref.set({ wins: 0, losses: 0, draws: 0 });
-    }
-  });
+// Firestore helpers for player scoring
+async function ensurePlayerStats(name) {
+  const ref = db.collection("players").doc(name);
+  const doc = await ref.get();
+  if (!doc.exists) {
+    await ref.set({ wins: 0, losses: 0, draws: 0 });
+  }
 }
 
-function updatePlayerStats(name, result) {
-  const stat = result === "win" ? "wins" : result === "loss" ? "losses" : "draws";
-  const ref = db.ref(`/players/${name}/${stat}`);
-  ref.transaction(current => (current || 0) + 1);
-}
-
-// 🆕 Start a new game
-function startNewGame() {
-  const gameRef = db.ref(`/games/${gameId}`);
-  gameRef.once('value', snapshot => {
-    const data = snapshot.val();
-    if (data.status !== "ended") return alert("Game is still ongoing.");
-    gameRef.update({
-      board: Array(9).fill(null),
-      turn: "X",
-      status: "playing",
-      winner: null
-    });
-  });
-
-  function loadLeaderboard() {
-  const playersRef = db.ref("/players");
-  playersRef.on("value", snapshot => {
-    const players = snapshot.val();
-    const tableBody = document.querySelector("#leaderboard tbody");
-    tableBody.innerHTML = "";
-
-    const sorted = Object.entries(players || {}).sort(([, a], [, b]) => b.wins - a.wins);
-
-    sorted.forEach(([name, stats]) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${name}</td>
-        <td>${stats.wins || 0}</td>
-        <td>${stats.losses || 0}</td>
-        <td>${stats.draws || 0}</td>
-      `;
-      tableBody.appendChild(row);
-    });
-  });
-}
-
+async function updatePlayerStats(name, result) {
+  const ref = db.collection("players").doc(name);
+  const field = result === "win" ? "wins" : result === "loss" ? "losses" : "draws";
+  await ref.update({ [field]: firebase.firestore.FieldValue.increment(1) });
 }
