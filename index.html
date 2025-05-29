@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Multiplayer Tic Tac Toe</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <h1>Multiplayer Tic Tac Toe</h1>
+  <div id="login">
+    <input type="text" id="playerName" placeholder="Enter your name" />
+    <button onclick="joinGame()">Join Game</button>
+  </div>
+
+  <div id="gameArea" style="display:none;">
+    <p id="playerInfo"></p>
+    <div class="board" id="board"></div>
+    <p id="gameStatus"></p>
+    <div class="scoreboard">
+      <p>X Wins: <span id="xWins">0</span></p>
+      <p>O Wins: <span id="oWins">0</span></p>
+      <p>Draws: <span id="draws">0</span></p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
