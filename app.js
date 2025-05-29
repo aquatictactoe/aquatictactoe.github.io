@@ -8,7 +8,7 @@ const firebaseConfig = {
   appId: "1:31391867375:web:886a9ee074d1900ea5161a",
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const db = firebase.database();
 
 let player = null;
 let playerSymbol = null;
