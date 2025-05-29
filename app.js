@@ -143,3 +143,18 @@ async function updatePlayerStats(name, result) {
   const field = result === "win" ? "wins" : result === "loss" ? "losses" : "draws";
   await ref.update({ [field]: firebase.firestore.FieldValue.increment(1) });
 }
+
+async function startNewGame() {
+  const gameRef = db.collection("games").doc(gameId);
+  const doc = await gameRef.get();
+  const data = doc.data();
+  if (data.status === "playing") return alert("Game is still ongoing.");
+
+  await gameRef.update({
+    board: Array(9).fill(null),
+    turn: "X",
+    status: "playing",
+    winner: null
+  });
+}
+
