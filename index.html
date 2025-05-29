@@ -4,45 +4,43 @@
   <meta charset="UTF-8" />
   <title>Multiplayer Tic Tac Toe</title>
   <link rel="stylesheet" href="style.css" />
+  
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 </head>
 <body>
   <h1>Multiplayer Tic Tac Toe</h1>
+
+  <!-- Login/Join -->
   <div id="login">
     <input type="text" id="playerName" placeholder="Enter your name" />
     <button onclick="joinGame()">Join Game</button>
   </div>
 
+  <!-- Game UI -->
   <div id="gameArea" style="display:none;">
     <p id="playerInfo"></p>
     <div class="board" id="board"></div>
     <p id="gameStatus"></p>
-    <div class="scoreboard">
-      <p>X Wins: <span id="xWins">0</span></p>
-      <p>O Wins: <span id="oWins">0</span></p>
-      <p>Draws: <span id="draws">0</span></p>
-    </div>
+    <button onclick="startNewGame()">Start New Game</button>
   </div>
 
-  <button onclick="startNewGame()">Start New Game</button>
-
-
+  <!-- Leaderboard -->
   <h2>Leaderboard</h2>
-<table id="leaderboard" border="1" style="margin:auto; border-collapse:collapse;">
-  <thead>
-    <tr>
-      <th>Player</th>
-      <th>Wins</th>
-      <th>Losses</th>
-      <th>Draws</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
-</table>
+  <table id="leaderboard" border="1" style="margin:auto; border-collapse:collapse;">
+    <thead>
+      <tr>
+        <th>Player</th>
+        <th>Wins</th>
+        <th>Losses</th>
+        <th>Draws</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
 
-
+  <!-- App logic -->
   <script src="app.js"></script>
 </body>
 </html>
