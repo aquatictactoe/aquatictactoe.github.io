@@ -2,11 +2,41 @@
 <html>
 <head>
   <title>Tic Tac Toe Leaderboard</title>
-  <style>
-    #leaderboard { margin-bottom: 20px; }
-    #game-board { display: none; }
-    .cell { width: 60px; height: 60px; display: inline-block; border: 1px solid #000; font-size: 36px; text-align: center; line-height: 60px; cursor: pointer; }
-  </style>
+ <style>
+  #leaderboard {
+    margin-bottom: 20px;
+  }
+
+  #game-board {
+    display: none;
+  }
+
+  #board {
+    display: grid;
+    grid-template-columns: repeat(3, 60px);
+    grid-template-rows: repeat(3, 60px);
+    gap: 5px;
+    margin-top: 10px;
+  }
+
+  .cell {
+    width: 60px;
+    height: 60px;
+    border: 2px solid #000;
+    font-size: 36px;
+    text-align: center;
+    line-height: 60px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  button {
+    margin-right: 10px;
+    padding: 6px 12px;
+    font-size: 16px;
+  }
+</style>
+
 </head>
 <body>
   <h1>Tic Tac Toe</h1>
