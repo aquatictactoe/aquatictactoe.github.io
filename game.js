@@ -20,6 +20,7 @@ let isMyTurn = false;
 // UI Hooks
 const statusEl = document.getElementById("status");
 const boardEl = document.getElementById("board");
+const code = document.getElementById("code");
 
 // Create New Game
 function startGame() {
@@ -35,6 +36,7 @@ function startGame() {
   isMyTurn = true;
   listenToGame();
   document.getElementById("game-board").style.display = "block";
+   code.innerText = gameId;
 }
 
 // Join Existing Game
