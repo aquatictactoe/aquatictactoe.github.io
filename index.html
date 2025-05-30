@@ -44,12 +44,14 @@
     <h2>Top 5 Scores</h2>
     <ul id="scoreList"></ul>
   </div>
-  <button onclick="startGame()">Start Game</button>
-  <button onclick="endGame()">End Game</button>
+<button onclick="startGame()">Start New Game</button>
+<input type="text" id="joinId" placeholder="Enter Game ID to Join">
+<button onclick="joinGame(document.getElementById('joinId').value)">Join Game</button>
 
   <div id="game-board">
     <h3 id="status">Player X's Turn</h3>
     <div id="board"></div>
+     <div id="code"></div>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
