@@ -36,7 +36,7 @@ function startGame() {
   isMyTurn = true;
   listenToGame();
   document.getElementById("game-board").style.display = "block";
-   code.innerText = gameId;
+   code.innerText = '<br>Share GameID with a friend: ' + gameId;
 }
 
 // Join Existing Game
