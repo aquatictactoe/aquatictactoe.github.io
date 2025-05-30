@@ -12,32 +12,85 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 
-let board = Array(9).fill("");
-let currentPlayer = "X";
-let isGameActive = false;
+// GAME STATE
+let playerSymbol = "";
+let gameId = "";
+let isMyTurn = false;
 
-const winCombos = [
-  [0,1,2],[3,4,5],[6,7,8],
-  [0,3,6],[1,4,7],[2,5,8],
-  [0,4,8],[2,4,6]
-];
+// UI Hooks
+const statusEl = document.getElementById("status");
+const boardEl = document.getElementById("board");
 
+// Create New Game
 function startGame() {
-  isGameActive = true;
-  board = Array(9).fill("");
-  currentPlayer = "X";
+  gameId = db.ref("games").push().key;
+  db.ref("games/" + gameId).set({
+    board: Array(9).fill(""),
+    playerX: "Player_" + Date.now(),
+    currentTurn: "X",
+    isActive: true,
+    winner: ""
+  });
+  playerSymbol = "X";
+  isMyTurn = true;
+  listenToGame();
   document.getElementById("game-board").style.display = "block";
-  document.getElementById("status").innerText = "Player X's Turn";
-  drawBoard();
 }
 
-function endGame() {
-  isGameActive = false;
-  document.getElementById("game-board").style.display = "none";
+// Join Existing Game
+function joinGame(gameIdToJoin) {
+  gameId = gameIdToJoin;
+  db.ref("games/" + gameId).once("value", snapshot => {
+    const data = snapshot.val();
+    if (data && !data.playerO) {
+      db.ref("games/" + gameId).update({ playerO: "Player_" + Date.now() });
+      playerSymbol = "O";
+      isMyTurn = false;
+      listenToGame();
+      document.getElementById("game-board").style.display = "block";
+    } else {
+      alert("Game not found or already full.");
+    }
+  });
 }
 
-function drawBoard() {
-  const boardEl = document.getElementById("board");
+// Listen to game state changes
+function listenToGame() {
+  db.ref("games/" + gameId).on("value", snapshot => {
+    const data = snapshot.val();
+    if (!data) return;
+    updateBoard(data.board);
+    statusEl.innerText = data.winner
+      ? (data.winner === "Draw" ? "It's a draw!" : `Player ${data.winner} wins!`)
+      : (data.currentTurn === playerSymbol ? "Your turn" : "Opponent's turn");
+    isMyTurn = data.currentTurn === playerSymbol;
+  });
+}
+
+// Make a move
+function makeMove(idx) {
+  if (!isMyTurn) return;
+  db.ref("games/" + gameId).once("value", snapshot => {
+    const data = snapshot.val();
+    if (!data || data.board[idx] || data.winner) return;
+
+    const board = data.board;
+    board[idx] = playerSymbol;
+
+    const winner = checkWinner(board);
+    db.ref("games/" + gameId).update({
+      board: board,
+      currentTurn: playerSymbol === "X" ? "O" : "X",
+      winner: winner,
+      isActive: winner ? false : true
+    });
+
+    if (winner && winner !== "Draw") saveScore(playerSymbol);
+  });
+}
+
+// Update UI board
+function updateBoard(board) {
   boardEl.innerHTML = "";
   board.forEach((cell, idx) => {
     const div = document.createElement("div");
@@ -48,41 +101,35 @@ function drawBoard() {
   });
 }
 
-function makeMove(idx) {
-  if (!isGameActive || board[idx] !== "") return;
-  board[idx] = currentPlayer;
-  drawBoard();
-  if (checkWin(currentPlayer)) {
-    document.getElementById("status").innerText = `Player ${currentPlayer} Wins!`;
-    saveScore(currentPlayer);
-    isGameActive = false;
-  } else if (!board.includes("")) {
-    document.getElementById("status").innerText = "Draw!";
-    isGameActive = false;
-  } else {
-    currentPlayer = currentPlayer === "X" ? "O" : "X";
-    document.getElementById("status").innerText = `Player ${currentPlayer}'s Turn`;
+// Check Winner Logic
+function checkWinner(b) {
+  const combos = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+  for (let combo of combos) {
+    const [a, b1, c] = combo;
+    if (b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
   }
+  return b.includes("") ? "" : "Draw";
 }
 
-function checkWin(player) {
-  return winCombos.some(combo => combo.every(i => board[i] === player));
-}
-
+// Save score
 function saveScore(winner) {
-  const newScore = {
+  db.ref('scores').push({
     player: winner,
     timestamp: Date.now()
-  };
-  db.ref('scores').push(newScore);
+  });
   loadScores();
 }
 
+// Load leaderboard
 function loadScores() {
   db.ref('scores')
     .orderByChild('timestamp')
     .limitToLast(5)
-    .once('value', (snapshot) => {
+    .once('value', snapshot => {
       const scoreList = document.getElementById("scoreList");
       scoreList.innerHTML = "";
       const scores = [];
